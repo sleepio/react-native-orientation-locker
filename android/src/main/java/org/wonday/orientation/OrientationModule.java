@@ -37,6 +37,11 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import android.database.ContentObserver;
+import android.net.Uri;
+import android.os.Handler;
+import android.util.Log;
+
 public class OrientationModule extends ReactContextBaseJavaModule implements OrientationListeners {
 
     final BroadcastReceiver mReceiver;
@@ -117,6 +122,20 @@ public class OrientationModule extends ReactContextBaseJavaModule implements Ori
             }
         };
         OrientationActivityLifecycle.getInstance().registerListeners(this);
+
+        Uri uri = android.provider.Settings.System.getUriFor(android.provider.Settings.System.ACCELEROMETER_ROTATION);
+        reactContext.getBaseContext().getContentResolver().registerContentObserver(uri, true, new ContentObserver(null) {
+            @Override
+            public void onChange(boolean selfChange) {
+                WritableMap params = Arguments.createMap();
+                params.putString("orientation", lastOrientationValue);
+                if (ctx.hasActiveCatalystInstance()) {
+                    ctx
+                    .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                    .emit("orientationDidChange", params);
+                }
+            }
+        });
     }
 
     @Override
